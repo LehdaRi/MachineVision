@@ -1,7 +1,7 @@
 #include "opencv2/highgui/highgui.hpp"
-#include "Shader.hpp"
+#include "GLFFT.hpp"
 
-#include <SFML/Window.hpp>
+#include <SFML/Graphics.hpp>
 #include <GL/glew.h>
 #include <iostream>
 #include <vector>
@@ -13,6 +13,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
+/*
     VideoCapture cap(0); // open the video camera no. 0
 
     if (!cap.isOpened()) { // if not success, exit program
@@ -28,29 +29,6 @@ int main(int argc, char* argv[])
    int dWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH); //get the width of frames of the video
    int dHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT); //get the height of frames of the video
 
-    cout << "Frame size : " << dWidth << " x " << dHeight << endl;
-
-    //namedWindow("MyVideo", WINDOW_OPENGL); //create a window called "MyVideo"
-
-    /*while (1) {
-        Mat frame;
-        bool bSuccess = cap.read(frame); // read a new frame from video
-
-        if (!bSuccess) //if not success, break loop
-        {
-            cout << "Cannot read a frame from video stream" << endl;
-            break;
-        }
-
-        //imshow("MyVideo", frame); //show the frame in "MyVideo" window
-
-        if (waitKey(30) == 27) //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-        {
-            cout << "esc key is pressed by user" << endl;
-            break;
-        }
-    }*/
-
     std::vector<uint8_t> frameData(0, dWidth * dHeight * 3);
     const int frameSize[] = {dWidth, dHeight};
 
@@ -59,11 +37,12 @@ int main(int argc, char* argv[])
         cout << "Cannot read a frame from video stream" << endl;
         return -1;
     }
+*/
+    //  TEMP
+    sf::Image testImg;
+    testImg.loadFromFile("res/test.png");
 
-    // Declare and create a new window
-    sf::Window window(sf::VideoMode(dWidth, dHeight), "Vision");
-
-    // Limit the framerate to 60 frames per second (this step is optional)
+    sf::Window window(sf::VideoMode(512, 512), "Vision");
     window.setFramerateLimit(30);
     window.setActive();
 
@@ -90,17 +69,24 @@ int main(int argc, char* argv[])
     glBindBuffer(GL_ARRAY_BUFFER, bufferId);
     glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
 
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, bufferId);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glBindVertexArray(0);
+
     GLuint textureId;
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, testImg.getPixelsPtr());
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
-
+    GLFFT fft(512, 512, "src/VS_FFT.glsl", "src/FS_FFT.glsl");
 
     // The main loop - ends as soon as the window is closed
     while (window.isOpen())
@@ -116,24 +102,24 @@ int main(int argc, char* argv[])
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, bufferId);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-        shader.use();
+        //  read frame from webcam
         glBindTexture(GL_TEXTURE_2D, textureId);
-
-        if (!cap.read(frame)) { // read a new frame from video
+        /*if (!cap.read(frame)) { // read a new frame from video
             cout << "Cannot read a frame from video stream" << endl;
             return -1;
         }
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
+*/
+        //  fft
+        //GLuint fftTexId = fft.transform(textureId, 256, 32);
+        GLuint fftTexId = fft.transform(textureId);
 
+        //  draw
+        glBindVertexArray(vertexArrayId);
+        shader.use();
+        glBindTexture(GL_TEXTURE_2D, fftTexId);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex"), 0);
-
         glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glDisableVertexAttribArray(0);
 
         // End the current frame and display its contents on screen
         window.display();

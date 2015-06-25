@@ -17,9 +17,13 @@ uniform sampler2D tex;
 
 void main() {
     color = texture(tex, UV);
-    color += texture(tex, UV+vec2(0.1, 0.0));
-    color += texture(tex, UV+vec2(-0.1, 0.0));
-    color += texture(tex, UV+vec2(0.0, 0.1));
-    color += texture(tex, UV+vec2(0.0, -0.1));
-    color *= 0.2;
+    /*vec2 UV_ = UV;
+
+    int sign = -1;
+    for (int i=0; i<11; ++i) {
+        UV_ += sign*vec2(color.r-color.b, -color.g+color.b)*0.05;
+        color += sign*texture(tex, UV_);
+        sign *= -1;
+    }*/
+    //color /= 12.0;
 }
