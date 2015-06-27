@@ -32,6 +32,14 @@ float   xd      = 1.0 / width;
 float   yd      = 1.0 / height;
 
 void main() {
+    _out[0] = vec4(0.0, 0.0, 0.0, 1.0);
+    for (int i=0; i<width; ++i) {
+        vec4 x = texture(tex_real, vec2(i*xd, UV.y));
+        _out[0] += x*cos((2*PI*px*i)/width);
+    }
+    _out[1] = vec4(0.0, 0.0, 0.0, 1.0);
+    return;
+
     if (iter == 0) {
         //  on iteration 0 just re-arrange the rows / cols
         if (direction == 0) {

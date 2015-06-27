@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 */
     //  TEMP
     sf::Image testImg;
-    testImg.loadFromFile("res/test.png");
+    testImg.loadFromFile("res/test4.png");
 
     sf::Window window(sf::VideoMode(512, 512), "Vision");
     window.setFramerateLimit(30);
@@ -83,10 +83,10 @@ int main(int argc, char* argv[])
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, testImg.getPixelsPtr());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, testImg.getPixelsPtr());
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
-    GLFFT fft(512, 512, "src/VS_FFT.glsl", "src/FS_FFT.glsl");
+    GLFFT fft(8, 8, "src/VS_FFT.glsl", "src/FS_FFT.glsl");
 
     // The main loop - ends as soon as the window is closed
     while (window.isOpen())

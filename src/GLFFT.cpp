@@ -88,8 +88,12 @@ GLFFT::~GLFFT(void) {
 }
 
 GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
+    GLint oldViewport[4];
+    glGetIntegerv(GL_VIEWPORT, oldViewport);
+
     //  copy the texture using the FBO
     glBindFramebuffer(GL_FRAMEBUFFER, framebufferId_);
+    glViewport(0, 0, width_, height_);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[active_], 0);
@@ -106,7 +110,7 @@ GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
 
     //  X-direction
     glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 0);
-    for (auto i=0u; i<xDepth_; ++i) {
+    for (auto i=0u; i<1; ++i) {
         //  real output
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
         //  imaginary output
@@ -130,6 +134,14 @@ GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
 
     glBindVertexArray(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //  restore old viewport
+    glViewport(oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
+    glActiveTexture(GL_TEXTURE0);
+
+    for (auto i=0; i<4; ++i)
+        printf("%u ", textureIds_[i]);
+    printf("\n");
 
     return textureIds_[active_];
 }

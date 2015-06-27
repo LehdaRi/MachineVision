@@ -16,7 +16,7 @@ out vec4 color;
 uniform sampler2D tex;
 
 void main() {
-    color = texture(tex, UV);
+    color = pow(texture(tex, UV), vec4(0.1));
     /*vec2 UV_ = UV;
 
     int sign = -1;
