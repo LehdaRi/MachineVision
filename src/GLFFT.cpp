@@ -87,7 +87,7 @@ GLFFT::~GLFFT(void) {
         glDeleteVertexArrays(1, &vertexArrayId_);
 }
 
-GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
+std::array<GLuint, 2> GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
     GLint oldViewport[4];
     glGetIntegerv(GL_VIEWPORT, oldViewport);
 
@@ -99,9 +99,13 @@ GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[active_], 0);
     glDrawBuffer(GL_COLOR_ATTACHMENT1);
     glBlitFramebuffer(xoffset, yoffset, xoffset+width_, yoffset+height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //  clear the imaginary input texture
+    glReadBuffer(GL_NONE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[active_+2], 0);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClear(GL_COLOR_BUFFER_BIT);
 
     //  setup framebuffer, VAO and shader
-    glReadBuffer(GL_NONE);
     glDrawBuffers(2, drawBuffers__);
     glBindVertexArray(vertexArrayId_);
     shader_.use();
@@ -110,7 +114,7 @@ GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
 
     //  X-direction
     glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 0);
-    for (auto i=0u; i<1; ++i) {
+    for (auto i=0u; i<=xDepth_; ++i) {
         //  real output
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
         //  imaginary output
@@ -139,9 +143,5 @@ GLuint GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
     glViewport(oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
     glActiveTexture(GL_TEXTURE0);
 
-    for (auto i=0; i<4; ++i)
-        printf("%u ", textureIds_[i]);
-    printf("\n");
-
-    return textureIds_[active_];
+    return { textureIds_[active_], textureIds_[active_+2] };
 }

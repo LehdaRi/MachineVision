@@ -13,10 +13,14 @@ in vec2 UV;
 
 out vec4 color;
 
-uniform sampler2D tex;
+uniform sampler2D tex1;
+uniform sampler2D tex2;
 
 void main() {
-    color = pow(texture(tex, UV), vec4(0.1));
+    if (UV.x < 0.5)
+        color = vec4((texture(tex1, vec2(UV.x*2, UV.y)).rgb+vec3(0.5))*0.5, 1.0);
+    else
+        color = vec4((texture(tex2, vec2(UV.x*2-1, UV.y)).rgb+vec3(0.5))*0.5, 1.0);
     /*vec2 UV_ = UV;
 
     int sign = -1;
