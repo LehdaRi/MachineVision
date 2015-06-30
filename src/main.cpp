@@ -83,7 +83,17 @@ int main(int argc, char* argv[])
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, testImg.getPixelsPtr());
+
+    GLuint destTexId[2];
+    glGenTextures(2, destTexId);
+    for (auto i=0u; i<2; ++i) {
+        glBindTexture(GL_TEXTURE_2D, destTexId[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 512, 512, 0, GL_RGBA, GL_FLOAT, (void*)0);
+    }
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
     GLFFT fft(512, 512, "src/VS_FFT.glsl", "src/FS_FFT.glsl");
@@ -111,16 +121,16 @@ int main(int argc, char* argv[])
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
 
         //  fft
-        auto fftTex = fft.transform(textureId, 256, 32);
+        fft(textureId, 0, destTexId[0], destTexId[1], false, true, 256, 32);
 
         //  draw
         glBindVertexArray(vertexArrayId);
         shader.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fftTex[0]);
+        glBindTexture(GL_TEXTURE_2D, destTexId[0]);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex1"), 0);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, fftTex[1]);
+        glBindTexture(GL_TEXTURE_2D, destTexId[1]);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex2"), 1);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 

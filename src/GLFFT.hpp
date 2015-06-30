@@ -6,7 +6,6 @@
 
 #include <GL/glew.h>
 #include <string>
-#include <array>
 
 
 class GLFFT {
@@ -22,7 +21,9 @@ public:
     GLFFT& operator=(GLFFT&&)       = delete;
 
     //  returns ids to textures containing the DFT
-    std::array<GLuint, 2> transform(GLuint textureId, GLuint xoffset = 0u, GLuint yoffset = 0u);
+    void operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint destTex2,
+                    bool inverse = false, bool spectrum = false,
+                    GLuint xoffset = 0u, GLuint yoffset = 0u);
 
 private:
     GLuint vertexArrayId_;

@@ -87,23 +87,45 @@ GLFFT::~GLFFT(void) {
         glDeleteVertexArrays(1, &vertexArrayId_);
 }
 
-std::array<GLuint, 2> GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint yoffset) {
+void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint destTex2,
+                       bool inverse, bool spectrum, GLuint xoffset, GLuint yoffset) {
     GLint oldViewport[4];
     glGetIntegerv(GL_VIEWPORT, oldViewport);
 
-    //  copy the texture using the FBO
     glBindFramebuffer(GL_FRAMEBUFFER, framebufferId_);
     glViewport(0, 0, width_, height_);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[active_], 0);
-    glDrawBuffer(GL_COLOR_ATTACHMENT1);
-    glBlitFramebuffer(xoffset, yoffset, xoffset+width_, yoffset+height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    //  clear the imaginary input texture
-    glReadBuffer(GL_NONE);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[active_+2], 0);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glClear(GL_COLOR_BUFFER_BIT);
+
+    if (srcTex1) {
+        //  copy the texture using the FBO
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, srcTex1, 0);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[active_], 0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT1);
+        glBlitFramebuffer(xoffset, yoffset, xoffset+width_, yoffset+height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+    else {
+        //  clear the active real input texture
+        glReadBuffer(GL_NONE);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[active_], 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+
+    if (srcTex2) {
+        //  copy the texture using the FBO
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, srcTex2, 0);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[active_+2], 0);
+        glDrawBuffer(GL_COLOR_ATTACHMENT1);
+        glBlitFramebuffer(xoffset, yoffset, xoffset+width_, yoffset+height_, 0, 0, width_, height_, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    }
+    else {
+        //  clear the active imaginary input texture
+        glReadBuffer(GL_NONE);
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[active_+2], 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
 
     //  setup framebuffer, VAO and shader
     glDrawBuffers(2, drawBuffers__);
@@ -117,12 +139,50 @@ std::array<GLuint, 2> GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint 
     for (auto i=0u; i<=xDepth_; ++i) {
         //  real output
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
+
         //  imaginary output
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[!active_+2], 0);
+
         //  real input
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureIds_[active_]);
         glUniform1i(glGetUniformLocation(shader_.getId(), "tex_real"), 0);
+
+        //  imaginary input
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureIds_[active_+2]);
+        glUniform1i(glGetUniformLocation(shader_.getId(), "tex_img"), 1);
+
+        //  rest of the uniforms
+        glUniform1ui(glGetUniformLocation(shader_.getId(), "iter"), i);
+
+        //  Julie, do the thing!
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        active_ = !active_;
+    }
+
+    //  Y-direction
+    glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 1);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "inverse"), inverse);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "spectrum"), spectrum);
+    for (auto i=0u; i<=yDepth_; ++i) {
+        //  real output
+        if (i == yDepth_ && destTex1)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTex1, 0);
+        else
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
+
+        //  imaginary output
+        if (i == yDepth_ && destTex2)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, destTex2, 0);
+        else
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[!active_+2], 0);
+
+        //  real input
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureIds_[active_]);
+        glUniform1i(glGetUniformLocation(shader_.getId(), "tex_real"), 0);
+
         //  imaginary input
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureIds_[active_+2]);
@@ -142,6 +202,4 @@ std::array<GLuint, 2> GLFFT::transform(GLuint textureId, GLuint xoffset, GLuint 
     //  restore old viewport
     glViewport(oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
     glActiveTexture(GL_TEXTURE0);
-
-    return { textureIds_[active_], textureIds_[active_+2] };
 }
