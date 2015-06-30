@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 
     cap.set(CV_CAP_PROP_FRAME_WIDTH, 1920.0/2);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT, 1080.0/2);
-    cap.set(CV_CAP_PROP_FOURCC,CV_FOURCC('M','J','P','G'));
+    //cap.set(CV_CAP_PROP_FOURCC,CV_FOURCC('M','J','P','G'));
     cap.set(CV_CAP_PROP_FPS, 30.0);
 
    int dWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH); //get the width of frames of the video
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     testImg.loadFromFile("res/test2.png");
 
     sf::Window window(sf::VideoMode(1024, 512), "Vision");
-    window.setFramerateLimit(30);
+    //window.setFramerateLimit(30);
     window.setActive();
 
     if (glewInit() != GLEW_OK) {
@@ -121,13 +121,14 @@ int main(int argc, char* argv[])
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dWidth, dHeight, 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
 
         //  fft
-        fft(textureId, 0, destTexId[0], destTexId[1], false, true, 256, 32);
+        fft(textureId, 0, destTexId[0], destTexId[1], false, false, 256, 32);
+        fft(destTexId[0], destTexId[1], destTexId[0], destTexId[1], true, false);
 
         //  draw
         glBindVertexArray(vertexArrayId);
         shader.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, destTexId[0]);
+        glBindTexture(GL_TEXTURE_2D, textureId);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex1"), 0);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, destTexId[1]);

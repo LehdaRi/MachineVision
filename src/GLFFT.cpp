@@ -1,3 +1,12 @@
+/**
+    GLFFT.cpp
+
+    @version    0.1
+    @author     Miika 'LehdaRi' Lehtimäki
+    @date       2015-06-30
+**/
+
+
 #include "GLFFT.hpp"
 
 #include <iostream>

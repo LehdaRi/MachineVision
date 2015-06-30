@@ -1,3 +1,12 @@
+/**
+    GLFFT.hpp
+
+    @version    0.1
+    @author     Miika 'LehdaRi' Lehtimäki
+    @date       2015-06-30
+**/
+
+
 #ifndef GLFFT_HPP
 #define GLFFT_HPP
 
