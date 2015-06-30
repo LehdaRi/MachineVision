@@ -145,6 +145,8 @@ void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint d
 
     //  X-direction
     glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 0);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "inverse"), inverse);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "spectrum"), spectrum);
     for (auto i=0u; i<=xDepth_; ++i) {
         //  real output
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
@@ -172,8 +174,6 @@ void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint d
 
     //  Y-direction
     glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 1);
-    glUniform1i(glGetUniformLocation(shader_.getId(), "inverse"), inverse);
-    glUniform1i(glGetUniformLocation(shader_.getId(), "spectrum"), spectrum);
     for (auto i=0u; i<=yDepth_; ++i) {
         //  real output
         if (i == yDepth_ && destTex1)

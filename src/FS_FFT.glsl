@@ -46,6 +46,11 @@ void main() {
             //  on iteration 0 just re-arrange the rows / cols
             _out[0] = texture(tex_real, vec2((bitfieldReverse(px) >> (32-xDepth))*xd, UV.y));
             _out[1] = texture(tex_img, vec2((bitfieldReverse(px) >> (32-xDepth))*xd, UV.y));
+            if (inverse && spectrum) {
+                vec4 temp = _out[0]*cos(_out[1]);
+                _out[1] = _out[0]*sin(_out[1]);
+                _out[0] = temp;
+            }
         }
         else {
             uint n = 1 << iter;
@@ -108,18 +113,13 @@ void main() {
             _out[0] = eReal + oReal*tc + oImg*ts;
             _out[1] = eImg + oImg*tc - oReal*ts;
 
-            if (iter == yDepth && inverse) {
-                _out[0] /= height;
-                _out[1] /= height;
-            }
-
-            if (iter == yDepth && spectrum && !inverse) {
+            if (iter == yDepth) {
                 if (inverse) {
                     _out[0] /= height;
                     _out[1] /= height;
                 }
                 else if (spectrum) {
-                    vec4 temp = sqrt(_out[0]*_out[0] + _out[1]*_out[1]) / height;
+                    vec4 temp = sqrt(_out[0]*_out[0] + _out[1]*_out[1]);
                     _out[1] = atan(_out[1], _out[0]);
                     _out[0] = temp;
                 }

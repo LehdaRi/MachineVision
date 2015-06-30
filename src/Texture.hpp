@@ -12,12 +12,13 @@
 
 
 #include <GL/glew.h>
-#include <SFML/Image.hpp>
+#include <SFML/Graphics/Image.hpp>
 
 
-template<unsigned S>
+template<unsigned S = 1u>
 class Texture {
 public:
+    Texture(void);
     Texture(unsigned width, unsigned height,
             GLenum format = GL_RGBA, GLenum wrapS = GL_REPEAT, GLenum wrapT = GL_REPEAT,
             void* data = nullptr, GLenum dataFormat = GL_RGBA, GLenum dataType = GL_UNSIGNED_BYTE);
@@ -25,12 +26,15 @@ public:
             GLenum format = GL_RGBA, GLenum wrapS = GL_REPEAT, GLenum wrapT = GL_REPEAT);
     ~Texture(void);
 
-    Texture(const Texture&)             = delete;
-    Texture(Texture&&)                  = delete;
-    Texture& operator=(const Texture&)  = delete;
-    Texture& operator=(Texture&&)       = delete;
+    Texture(Texture&&);
+    Texture<S>& operator=(Texture&&);
+    Texture(const Texture& other)               = delete;
+    Texture<S>& operator=(const Texture& other) = delete;
 
-    GLuint getId(unsigned id = 0u) const;
+    GLuint operator[](unsigned id) const;
+
+    unsigned width(void) const;
+    unsigned height(void) const;
 
     void loadFromFile(const std::string& fileName, unsigned id = 0u);
 
@@ -39,11 +43,18 @@ private:
     unsigned width_, height_;
 };
 
+
 //  Member definitions
 template<unsigned S>
-Texture<S>::Texture(unsigned width, unsigned height, void* data = nullptr,
+Texture<S>::Texture(void) :
+    textureIds_{0},
+    width_(0), height_(0)
+{}
+
+template<unsigned S>
+Texture<S>::Texture(unsigned width, unsigned height,
                     GLenum format, GLenum wrapS, GLenum wrapT,
-                    void* data, GLenum dataFormat, GLenum dataType) {
+                    void* data, GLenum dataFormat, GLenum dataType) :
     textureIds_{0},
     width_(width), height_(height)
 {
@@ -60,13 +71,15 @@ Texture<S>::Texture(unsigned width, unsigned height, void* data = nullptr,
 
 template<unsigned S>
 Texture<S>::Texture(const std::string& fileName,
-                    GLenum format, GLenum wrapS, GLenum wrapT) {
+                    GLenum format, GLenum wrapS, GLenum wrapT) :
     textureIds_{0},
     width_(0), height_(0)
 {
     sf::Image img;
     img.loadFromFile(fileName);
     auto is = img.getSize();
+    width_ = is.x;
+    height_ = is.y;
 
     glGenTextures(S, textureIds_);
     for (auto i=0u; i<S; ++i) {
@@ -75,7 +88,7 @@ Texture<S>::Texture(const std::string& fileName,
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, is.x, is.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.getPixelsPtr());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_, height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.getPixelsPtr());
     }
 }
 
@@ -86,7 +99,28 @@ Texture<S>::~Texture(void) {
 }
 
 template<unsigned S>
-GLuint Texture<S>::getId(unsigned id) const {
+Texture<S>::Texture(Texture&& other) {
+    *this = other;
+}
+
+template<unsigned S>
+Texture<S>& Texture<S>::operator=(Texture<S>&& other) {
+    if (textureIds_[0])
+        glDeleteTextures(S, textureIds_);
+
+    for (auto i=0u; i<S; ++i) {
+        textureIds_[i] = other.textureIds_[i];
+        other.textureIds_[i] = 0;
+    }
+
+    width_ = other.width_;
+    height_ = other.height_;
+
+    return *this;
+}
+
+template<unsigned S>
+GLuint Texture<S>::operator[](unsigned id) const {
     if (id >= S)
         return 0;
     else
@@ -94,7 +128,17 @@ GLuint Texture<S>::getId(unsigned id) const {
 }
 
 template<unsigned S>
-void Texture<S>::loadFromFile(const std::string& fileName) {
+unsigned Texture<S>::width(void) const {
+    return width_;
+}
+
+template<unsigned S>
+unsigned Texture<S>::height(void) const {
+    return height_;
+}
+
+template<unsigned S>
+void Texture<S>::loadFromFile(const std::string& fileName, unsigned id) {
     if (id >= S)
         return;
 
