@@ -54,11 +54,11 @@ int main(int argc, char* argv[])
     Texture<2> tex2(512, 512, GL_RGBA32F);
     Texture<2> tex3(512, 512, GL_RGBA32F);
 
-    Texture<1> filter("res/filter1c.png");
+    Texture<1> filter("res/filter1.png");
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
-    GLFFT fft(512, 512, "src/VS_FFT.glsl", "src/FS_FFT.glsl");
-    TextureManipulator texMan("src/VS_FFT.glsl", "src/FS_TextureManip.glsl");
+    GLFFT fft(512, 512, "src/VS_UV.glsl", "src/FS_FFT.glsl", "src/FS_Spectrum.glsl");
+    TextureManipulator texMan("src/VS_UV.glsl", "src/FS_TextureManip.glsl");
 
     // The main loop - ends as soon as the window is closed
     while (window.isOpen())
@@ -74,29 +74,26 @@ int main(int argc, char* argv[])
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-
-
         //  read frame from webcam
         cam1.read();
         //cam2.read();
 
         //  fft
-        fft(cam1.texture()[0], 0, tex1[0], tex1[1], false, false, 256, 32);
+        fft(cam1.texture()[0], 0, tex1[0], tex1[1], false, true, 256, 32);
         //fft(tex1[0], tex1[1], tex1[0], tex1[1], true, false);
         //fft(cam2.texture()[0], 0, tex2[0], tex2[1], false, false, 256, 32);
         //fft(tex2[0], tex2[1], tex2[0], tex2[1], true, false);
 
         texMan.multiply(tex1, filter, tex3);
 
-        //fft(tex1[0], tex1[1], tex1[0], tex1[1], true, true);
-        fft(tex3[0], tex3[1], tex3[0], tex3[1], true, false);
+        //fft(tex1[0], tex1[1], tex3[0], tex3[1], true, true);
+        fft(tex3[0], tex1[1], tex3[0], tex3[1], true, true);
 
         //  draw
         glBindVertexArray(vertexArrayId);
         shader.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex1[0]);
+        glBindTexture(GL_TEXTURE_2D, filter[0]);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex1"), 0);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, tex3[0]);

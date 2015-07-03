@@ -24,17 +24,16 @@ uniform uint xDepth, yDepth;    //  the FFT depth
 uniform uint direction;         //  transform direction (0: x, 1: y)
 uniform uint iter;              //  iteration id
 uniform bool inverse;
-uniform bool spectrum;
-
-uint    width   = 1 << xDepth;
-uint    height  = 1 << yDepth;
-uint    px      = uint(UV.x * width);
-uint    py      = uint(UV.y * height);
-float   xd      = 1.0 / width;
-float   yd      = 1.0 / height;
 
 
 void main() {
+    uint width  = 1 << xDepth;
+    uint height = 1 << yDepth;
+    float xd    = 1.0 / width;
+    float yd    = 1.0 / height;
+    uint px = uint(UV.x * width);
+    uint py = uint(UV.y * height);
+
     vec4 eReal  = vec4(0.0);
     vec4 eImg   = vec4(0.0);
     vec4 oReal  = vec4(0.0);
@@ -46,11 +45,6 @@ void main() {
             //  on iteration 0 just re-arrange the rows / cols
             _out[0] = texture(tex_real, vec2((bitfieldReverse(px) >> (32-xDepth))*xd, UV.y));
             _out[1] = texture(tex_img, vec2((bitfieldReverse(px) >> (32-xDepth))*xd, UV.y));
-            if (inverse && spectrum) {
-                vec4 temp = _out[0]*cos(_out[1]);
-                _out[1] = _out[0]*sin(_out[1]);
-                _out[0] = temp;
-            }
         }
         else {
             uint n = 1 << iter;
@@ -113,20 +107,10 @@ void main() {
             _out[0] = eReal + oReal*tc + oImg*ts;
             _out[1] = eImg + oImg*tc - oReal*ts;
 
-            if (iter == yDepth) {
-                if (inverse) {
-                    _out[0] /= height;
-                    _out[1] /= height;
-                }
-                else if (spectrum) {
-                    vec4 temp = sqrt(_out[0]*_out[0] + _out[1]*_out[1]);
-                    _out[1] = atan(_out[1], _out[0]);
-                    _out[0] = temp;
-                }
+            if (iter == yDepth && inverse) {
+                _out[0] /= height;
+                _out[1] /= height;
             }
         }
     }
-
-    //_out[0] = eReal + oReal*tc + oImg*ts;
-    //_out[1] = eImg + oImg*tc - oReal*ts;
 }

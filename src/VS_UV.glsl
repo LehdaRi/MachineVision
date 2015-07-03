@@ -1,9 +1,9 @@
 /**
-    VS_FFT.glsl
+    VS_UV.glsl
 
     @version    0.1
     @author     Miika 'LehdaRi' Lehtimäki
-    @date       2015-06-25
+    @date       2015-07-02
 **/
 
 

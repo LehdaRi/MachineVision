@@ -21,7 +21,8 @@ class GLFFT {
 public:
     //  power-of-two dimensions only
     GLFFT(unsigned width, unsigned height,
-          const std::string& vsFileName, const std::string& fsFileName);
+          const std::string& vsFileName, const std::string& fftFsFileName,
+          const std::string& spectrumFsFileName);
     ~GLFFT(void);
 
     GLFFT(const GLFFT&)             = delete;
@@ -42,7 +43,8 @@ private:
     unsigned width_, height_;
     unsigned xDepth_, yDepth_;
     int active_;
-    Shader shader_;
+    Shader fftShader_;
+    Shader spectrumShader_;
 
     static const GLfloat quad__[18];
     static const GLenum drawBuffers__[2];

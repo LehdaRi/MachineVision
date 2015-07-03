@@ -28,7 +28,8 @@ const GLenum GLFFT::drawBuffers__[] = {
 
 
 GLFFT::GLFFT(unsigned width, unsigned height,
-             const std::string& vsFileName, const std::string& fsFileName) :
+             const std::string& vsFileName, const std::string& fftFsFileName,
+             const std::string& spectrumFsFileName) :
     vertexArrayId_(0),
     arrayBufferId_(0),
     framebufferId_(0),
@@ -36,7 +37,8 @@ GLFFT::GLFFT(unsigned width, unsigned height,
     width_(width), height_(height),
     xDepth_(0), yDepth_(0),
     active_(0),
-    shader_(vsFileName, fsFileName)
+    fftShader_(vsFileName, fftFsFileName),
+    spectrumShader_(vsFileName, spectrumFsFileName)
 {
     //  check width & height
     for (auto i=0u; i<32; ++i) {
@@ -136,17 +138,39 @@ void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint d
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    //  setup framebuffer, VAO and shader
+    //  setup framebuffer and VAO
     glDrawBuffers(2, drawBuffers__);
     glBindVertexArray(vertexArrayId_);
-    shader_.use();
-    glUniform1ui(glGetUniformLocation(shader_.getId(), "xDepth"), xDepth_);
-    glUniform1ui(glGetUniformLocation(shader_.getId(), "yDepth"), yDepth_);
+
+    //  parse spectrum
+    if (inverse && spectrum) {
+        glUseProgram(spectrumShader_.getId());
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[!active_+2], 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureIds_[active_]);
+        glUniform1i(glGetUniformLocation(spectrumShader_.getId(), "tex1"), 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureIds_[active_+2]);
+        glUniform1i(glGetUniformLocation(spectrumShader_.getId(), "tex2"), 1);
+
+        glUniform1ui(glGetUniformLocation(spectrumShader_.getId(), "inverse"), 1);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        active_ = !active_;
+    }
+
+    //  setup fft shader
+    fftShader_.use();
+    glUniform1ui(glGetUniformLocation(fftShader_.getId(), "xDepth"), xDepth_);
+    glUniform1ui(glGetUniformLocation(fftShader_.getId(), "yDepth"), yDepth_);
 
     //  X-direction
-    glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 0);
-    glUniform1i(glGetUniformLocation(shader_.getId(), "inverse"), inverse);
-    glUniform1i(glGetUniformLocation(shader_.getId(), "spectrum"), spectrum);
+    glUniform1ui(glGetUniformLocation(fftShader_.getId(), "direction"), 0);
+    glUniform1i(glGetUniformLocation(fftShader_.getId(), "inverse"), inverse);
     for (auto i=0u; i<=xDepth_; ++i) {
         //  real output
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
@@ -157,15 +181,15 @@ void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint d
         //  real input
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureIds_[active_]);
-        glUniform1i(glGetUniformLocation(shader_.getId(), "tex_real"), 0);
+        glUniform1i(glGetUniformLocation(fftShader_.getId(), "tex_real"), 0);
 
         //  imaginary input
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureIds_[active_+2]);
-        glUniform1i(glGetUniformLocation(shader_.getId(), "tex_img"), 1);
+        glUniform1i(glGetUniformLocation(fftShader_.getId(), "tex_img"), 1);
 
         //  rest of the uniforms
-        glUniform1ui(glGetUniformLocation(shader_.getId(), "iter"), i);
+        glUniform1ui(glGetUniformLocation(fftShader_.getId(), "iter"), i);
 
         //  Julie, do the thing!
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -173,16 +197,16 @@ void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint d
     }
 
     //  Y-direction
-    glUniform1ui(glGetUniformLocation(shader_.getId(), "direction"), 1);
+    glUniform1ui(glGetUniformLocation(fftShader_.getId(), "direction"), 1);
     for (auto i=0u; i<=yDepth_; ++i) {
         //  real output
-        if (i == yDepth_ && destTex1)
+        if (i == yDepth_ && destTex1 && !(spectrum && !inverse))
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTex1, 0);
         else
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureIds_[!active_], 0);
 
         //  imaginary output
-        if (i == yDepth_ && destTex2)
+        if (i == yDepth_ && destTex2 && !(spectrum && !inverse))
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, destTex2, 0);
         else
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textureIds_[!active_+2], 0);
@@ -190,17 +214,38 @@ void GLFFT::operator()(GLuint srcTex1, GLuint srcTex2, GLuint destTex1, GLuint d
         //  real input
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureIds_[active_]);
-        glUniform1i(glGetUniformLocation(shader_.getId(), "tex_real"), 0);
+        glUniform1i(glGetUniformLocation(fftShader_.getId(), "tex_real"), 0);
 
         //  imaginary input
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textureIds_[active_+2]);
-        glUniform1i(glGetUniformLocation(shader_.getId(), "tex_img"), 1);
+        glUniform1i(glGetUniformLocation(fftShader_.getId(), "tex_img"), 1);
 
         //  rest of the uniforms
-        glUniform1ui(glGetUniformLocation(shader_.getId(), "iter"), i);
+        glUniform1ui(glGetUniformLocation(fftShader_.getId(), "iter"), i);
 
         //  Julie, do the thing!
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        active_ = !active_;
+    }
+
+    //  Form spectrum
+    if (!inverse && spectrum) {
+        glUseProgram(spectrumShader_.getId());
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTex1, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, destTex2, 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureIds_[active_]);
+        glUniform1i(glGetUniformLocation(spectrumShader_.getId(), "tex1"), 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textureIds_[active_+2]);
+        glUniform1i(glGetUniformLocation(spectrumShader_.getId(), "tex2"), 1);
+
+        glUniform1ui(glGetUniformLocation(spectrumShader_.getId(), "inverse"), 0);
+
         glDrawArrays(GL_TRIANGLES, 0, 6);
         active_ = !active_;
     }
