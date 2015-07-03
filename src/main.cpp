@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
     Texture<2> tex2(512, 512, GL_RGBA32F);
     Texture<2> tex3(512, 512, GL_RGBA32F);
 
-    Texture<1> filter("res/filter1.png");
+    Texture<1> filter("res/filter3.png");
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
     GLFFT fft(512, 512, "src/VS_UV.glsl", "src/FS_FFT.glsl", "src/FS_Spectrum.glsl");
