@@ -9,6 +9,14 @@
 #include <vector>
 
 
+#define QUAD(xPos, yPos, xSize, ySize) xPos, yPos, 0.0f,\
+                                       xPos+xSize, yPos, 0.0f,\
+                                       xPos, yPos+ySize, 0.0f,\
+                                       xPos, yPos+ySize, 0.0f,\
+                                       xPos+xSize, yPos, 0.0f,\
+                                       xPos+xSize, yPos+ySize, 0.0f\
+
+
 using namespace std;
 
 
@@ -26,13 +34,8 @@ int main(int argc, char* argv[])
     Cam cam1(0, 1920.0/2, 1080.0/2, 30.0);
     //Cam cam2(1, 1920.0/2, 1080.0/2, 30.0);
 
-    const GLfloat quad[18] = {
-        -1.0f,  -1.0f,  0.0f,
-        1.0f,   -1.0f,   0.0f,
-        -1.0f,  1.0f,  0.0f,
-        -1.0f,  1.0f,   0.0f,
-        1.0f,   -1.0f,  0.0f,
-        1.0f,   1.0f,   0.0f
+    const GLfloat quads[] = {
+        QUAD(-1.0f, -1.0f, 2.0f, 2.0f)
     };
 
     GLuint vertexArrayId;
@@ -42,7 +45,7 @@ int main(int argc, char* argv[])
     GLuint bufferId;
     glGenBuffers(1, &bufferId);
     glBindBuffer(GL_ARRAY_BUFFER, bufferId);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quad), quad, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quads), quads, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, bufferId);
@@ -54,7 +57,7 @@ int main(int argc, char* argv[])
     Texture<2> tex2(512, 512, GL_RGBA32F);
     Texture<2> tex3(512, 512, GL_RGBA32F);
 
-    Texture<1> filter("res/filter3.png");
+    Texture<1> filter("res/filter2.png");
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
     GLFFT fft(512, 512, "src/VS_UV.glsl", "src/FS_FFT.glsl", "src/FS_Spectrum.glsl");
