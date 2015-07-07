@@ -18,9 +18,13 @@
 #include <string>
 
 
-constexpr unsigned min(unsigned a, unsigned b) {
-    return a < b ? b : a;
-}
+namespace {
+
+    constexpr unsigned min(unsigned a, unsigned b) {
+        return a < b ? b : a;
+    }
+
+}   //  namespace
 
 
 class TextureManipulator {
@@ -36,6 +40,8 @@ public:
     template <unsigned S1, unsigned S2>
     void multiply(const Texture<S1>& srcTex1, const Texture<S2>& srcTex2,
                   Texture<min(S1, S2)>& destTex);
+
+    void complexConjMultiply(const Texture<2>& leftTex, const Texture<2>& rightTex, Texture<2>& destTex);
 
 private:
     GLuint vertexArrayId_;
@@ -63,6 +69,7 @@ void TextureManipulator::multiply(const Texture<S1>& srcTex1, const Texture<S2>&
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glBindVertexArray(vertexArrayId_);
     shader_.use();
+    glUniform1i(glGetUniformLocation(shader_.getId(), "func"), 0);
 
     for (auto i=0u; i<min(S1, S2); ++i) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTex[i], 0);

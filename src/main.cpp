@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    Cam cam1(0, 1920.0/2, 1080.0/2, 30.0);
+    //Cam cam1(0, 1920.0/2, 1080.0/2, 30.0);
     //Cam cam2(1, 1920.0/2, 1080.0/2, 30.0);
 
     const GLfloat quads[] = {
@@ -57,7 +57,9 @@ int main(int argc, char* argv[])
     Texture<2> tex2(512, 512, GL_RGBA32F);
     Texture<2> tex3(512, 512, GL_RGBA32F);
 
-    Texture<1> filter("res/filter2.png");
+    Texture<> test1("res/test7a.png");
+    Texture<> test2("res/test7b.png");
+    //Texture<1> filter("res/filter2.png");
 
     Shader shader("src/VS_Texture.glsl", "src/FS_Texture.glsl");
     GLFFT fft(512, 512, "src/VS_UV.glsl", "src/FS_FFT.glsl", "src/FS_Spectrum.glsl");
@@ -78,28 +80,27 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //  read frame from webcam
-        cam1.read();
+        //cam1.read();
         //cam2.read();
 
         //  fft
-        fft(cam1.texture()[0], 0, tex1[0], tex1[1], false, true, 256, 32);
-        //fft(tex1[0], tex1[1], tex1[0], tex1[1], true, false);
+        //fft(cam1.texture()[0], 0, tex1[0], tex1[1], false, false, 256, 32);
         //fft(cam2.texture()[0], 0, tex2[0], tex2[1], false, false, 256, 32);
-        //fft(tex2[0], tex2[1], tex2[0], tex2[1], true, false);
+        fft(test1[0], 0, tex1[0], tex1[1], false, false);
+        fft(test2[0], 0, tex2[0], tex2[1], false, false);
 
-        texMan.multiply(tex1, filter, tex3);
+        texMan.complexConjMultiply(tex1, tex2, tex3);
 
-        //fft(tex1[0], tex1[1], tex3[0], tex3[1], true, true);
-        fft(tex3[0], tex1[1], tex3[0], tex3[1], true, true);
+        fft(tex3[0], tex3[1], tex3[0], tex3[1], true, false);
 
         //  draw
         glBindVertexArray(vertexArrayId);
         shader.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, filter[0]);
+        glBindTexture(GL_TEXTURE_2D, tex3[0]);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex1"), 0);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, tex3[0]);
+        glBindTexture(GL_TEXTURE_2D, tex3[1]);
         glUniform1i(glGetUniformLocation(shader.getId(), "tex2"), 1);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 

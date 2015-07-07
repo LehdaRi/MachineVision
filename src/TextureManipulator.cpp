@@ -54,3 +54,43 @@ TextureManipulator::~TextureManipulator(void) {
         glDeleteVertexArrays(1, &vertexArrayId_);
 }
 
+void TextureManipulator::complexConjMultiply(const Texture<2>& leftTex,
+                                             const Texture<2>& rightTex,
+                                             Texture<2>& destTex) {
+    GLint oldViewport[4];
+    glGetIntegerv(GL_VIEWPORT, oldViewport);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebufferId_);
+    glViewport(0, 0, destTex.width(), destTex.height());
+    const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, drawBuffers);
+    glBindVertexArray(vertexArrayId_);
+    shader_.use();
+    glUniform1i(glGetUniformLocation(shader_.getId(), "func"), 1);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTex[0], 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, destTex[1], 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, leftTex[0]);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "tex1"), 0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, leftTex[1]);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "tex2"), 1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, rightTex[0]);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "tex3"), 2);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, rightTex[1]);
+    glUniform1i(glGetUniformLocation(shader_.getId(), "tex4"), 3);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindVertexArray(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //  restore old viewport
+    glViewport(oldViewport[0], oldViewport[1], oldViewport[2], oldViewport[3]);
+    glActiveTexture(GL_TEXTURE0);
+}
+
